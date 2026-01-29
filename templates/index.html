@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>English to Kannada Translator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>English <span class="arrow">→</span> Kannada</h1>
+            <p>Premium AI-Powered Translation</p>
+        </header>
+
+        <main>
+            <div class="translator-box">
+                <div class="input-group">
+                    <label for="source-text">English</label>
+                    <textarea id="source-text" placeholder="Type something here..."></textarea>
+                </div>
+
+                <div class="action-area">
+                    <button id="translate-btn">Translate</button>
+                    <div class="loader" id="loader"></div>
+                </div>
+
+                <div class="input-group">
+                    <label for="target-text">Kannada</label>
+                    <textarea id="target-text" readonly placeholder="Translation will appear here..."></textarea>
+                    <button id="play-audio-btn" disabled>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+                            <path d="M8 5v14l11-7z"/>
+                        </svg>
+                        Play Audio
+                    </button>
+                    <audio id="audio-player" hidden></audio>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Powered by Google Translate & gTTS</p>
+        </footer>
+    </div>
+
+    <script>
+        const translateBtn = document.getElementById('translate-btn');
+        const sourceText = document.getElementById('source-text');
+        const targetText = document.getElementById('target-text');
+        const playBtn = document.getElementById('play-audio-btn');
+        const audioPlayer = document.getElementById('audio-player');
+        const loader = document.getElementById('loader');
+
+        translateBtn.addEventListener('click', async () => {
+            const text = sourceText.value.trim();
+            if (!text) return;
+
+            // UI State: Loading
+            translateBtn.disabled = true;
+            loader.style.display = 'block';
+            targetText.value = '';
+            playBtn.disabled = true;
+
+            try {
+                const response = await fetch('/translate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    targetText.value = data.translated;
+                    audioPlayer.src = data.audio_url;
+                    playBtn.disabled = false;
+                } else {
+                    targetText.value = "Error: " + (data.error || "Unknown error");
+                }
+            } catch (error) {
+                targetText.value = "Network Error";
+            } finally {
+                // UI State: Reset
+                translateBtn.disabled = false;
+                loader.style.display = 'none';
+            }
+        });
+
+        playBtn.addEventListener('click', () => {
+            audioPlayer.play();
+        });
+    </script>
+</body>
+</html>
