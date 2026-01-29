@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+
 <body>
     <div class="container">
         <header>
@@ -20,7 +22,18 @@
             <div class="translator-box">
                 <div class="input-group">
                     <label for="source-text">English</label>
-                    <textarea id="source-text" placeholder="Type something here..."></textarea>
+                    <div class="textarea-wrapper">
+                        <textarea id="source-text" placeholder="Type something here..."></textarea>
+                        <button id="mic-btn" title="Speak">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24"
+                                height="24">
+                                <path
+                                    d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.66 9 5v6c0 1.66 1.34 3 3 3z" />
+                                <path
+                                    d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="action-area">
@@ -32,8 +45,9 @@
                     <label for="target-text">Kannada</label>
                     <textarea id="target-text" readonly placeholder="Translation will appear here..."></textarea>
                     <button id="play-audio-btn" disabled>
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
-                            <path d="M8 5v14l11-7z"/>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24"
+                            height="24">
+                            <path d="M8 5v14l11-7z" />
                         </svg>
                         Play Audio
                     </button>
@@ -54,6 +68,46 @@
         const playBtn = document.getElementById('play-audio-btn');
         const audioPlayer = document.getElementById('audio-player');
         const loader = document.getElementById('loader');
+        const micBtn = document.getElementById('mic-btn');
+
+        // Speech Recognition Setup
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition;
+
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.lang = 'en-US';
+            recognition.interimResults = false;
+
+            recognition.onstart = () => {
+                micBtn.classList.add('listening');
+            };
+
+            recognition.onend = () => {
+                micBtn.classList.remove('listening');
+                // Auto-translate after speech ends
+                if (sourceText.value.trim().length > 0) {
+                    translateBtn.click();
+                }
+            };
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                sourceText.value = transcript;
+            };
+
+            micBtn.addEventListener('click', () => {
+                if (micBtn.classList.contains('listening')) {
+                    recognition.stop();
+                } else {
+                    recognition.start();
+                }
+            });
+        } else {
+            micBtn.style.display = 'none';
+            console.log('Web Speech API not supported in this browser.');
+        }
 
         translateBtn.addEventListener('click', async () => {
             const text = sourceText.value.trim();
@@ -78,6 +132,12 @@
                     targetText.value = data.translated;
                     audioPlayer.src = data.audio_url;
                     playBtn.disabled = false;
+                    // Auto-play for speech-to-speech experience
+                    try {
+                        await audioPlayer.play();
+                    } catch (e) {
+                        console.log("Auto-play blocked", e);
+                    }
                 } else {
                     targetText.value = "Error: " + (data.error || "Unknown error");
                 }
@@ -95,4 +155,5 @@
         });
     </script>
 </body>
+
 </html>
